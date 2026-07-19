@@ -24,6 +24,7 @@ server:
 # --- Application-specific config ---
 finvoice:
   ocr:
+    credentials-file: ${GOOGLE_APPLICATION_CREDENTIALS:}
     language-hints: en
 
   audio:

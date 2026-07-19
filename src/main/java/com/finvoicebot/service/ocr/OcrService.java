@@ -6,6 +6,8 @@ import com.google.cloud.vision.v1.AnnotateImageResponse;
 import com.google.cloud.vision.v1.BatchAnnotateImagesResponse;
 import com.google.cloud.vision.v1.Feature;
 import com.google.cloud.vision.v1.Image;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.vision.v1.ImageAnnotatorClient;
 import com.google.cloud.vision.v1.ImageAnnotatorSettings;
 import com.google.protobuf.ByteString;
@@ -13,7 +15,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,6 +40,9 @@ public class OcrService {
 
     @Value("${finvoice.ocr.language-hints:en}")
     private List<String> languageHints;
+
+    @Value("${finvoice.ocr.credentials-file:}")
+    private String credentialsFilePath;
 
     /**
      * Runs OCR against the given image bytes and returns the full extracted text block.
@@ -87,8 +94,29 @@ public class OcrService {
     }
 
     private ImageAnnotatorSettings buildSettings() throws IOException {
+        if (credentialsFilePath != null && !credentialsFilePath.isBlank()) {
+            try (InputStream credentialsStream = resolveCredentialsStream()) {
+                GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
+                        .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
+                return ImageAnnotatorSettings.newBuilder()
+                        .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                        .build();
+            }
+        }
+
         // Uses default credential resolution chain (env var key.json -> ADC -> Workload Identity).
-        // Overriding here only if a bean of GoogleCredentials is explicitly configured elsewhere.
         return ImageAnnotatorSettings.newBuilder().build();
+    }
+
+    private InputStream resolveCredentialsStream() throws IOException {
+        if (credentialsFilePath.startsWith("classpath:")) {
+            String resourcePath = credentialsFilePath.substring("classpath:".length());
+            InputStream stream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (stream == null) {
+                throw new IOException("Google credentials resource not found: " + resourcePath);
+            }
+            return stream;
+        }
+        return new FileInputStream(credentialsFilePath);
     }
 }
