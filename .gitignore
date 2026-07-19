@@ -28,3 +28,4 @@ key.json
 # Logs
 *.log
 ocrproject*json
+src/main/resources/ocrproject-*.json
