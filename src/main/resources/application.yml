@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: finvoice-bot
+  thymeleaf:
+    cache: false
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 15MB
+
+  # --- Default profile: SQLite, zero setup, good for local dev / single-user demo ---
+  datasource:
+    url: jdbc:sqlite:./finvoice-bot.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+server:
+  port: 8080
+
+# --- Application-specific config ---
+finvoice:
+  ocr:
+    language-hints: en
+
+  audio:
+    storage-dir: ./audio-clips
+    voice-name: en-IN-Neural2-A
+    language-code: en-IN
+
+  payment:
+    default-gateway: RAZORPAY   # RAZORPAY or STRIPE; overridden per-message with "via stripe"/"via razorpay"
+    razorpay:
+      key-id: ${RAZORPAY_KEY_ID:}
+      key-secret: ${RAZORPAY_KEY_SECRET:}
+    stripe:
+      secret-key: ${STRIPE_SECRET_KEY:}
+
+logging:
+  level:
+    com.finvoicebot: INFO
+
+---
+# --- 'postgres' profile: activate with --spring.profiles.active=postgres for multi-user prod ---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/finvoicebot}
+    username: ${DB_USERNAME:finvoicebot}
+    password: ${DB_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update

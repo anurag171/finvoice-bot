@@ -1,0 +1,29 @@
+# Build output
+target/
+*.class
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# App runtime artifacts — never commit these
+*.db
+*.db-journal
+audio-clips/
+key.json
+*.env
+.env
+
+# Logs
+*.log

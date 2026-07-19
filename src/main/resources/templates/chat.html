@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>finvoice · invoice-to-payment ledger</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="ledger">
+
+    <aside class="ledger__sidebar">
+        <div class="brand">
+            <span class="brand__mark">₹⇄$</span>
+            <div class="brand__text">
+                <span class="brand__title">finvoice</span>
+                <span class="brand__subtitle">scan → parse → pay → confirm</span>
+            </div>
+        </div>
+
+        <button class="new-session-btn" id="newSessionBtn">+ New conversation</button>
+
+        <div class="sidebar__section">
+            <span class="sidebar__label">Past conversations</span>
+            <ul class="session-list" id="sessionList"><!-- populated by app.js --></ul>
+        </div>
+
+        <div class="sidebar__section">
+            <span class="sidebar__label">Recent invoices</span>
+            <ul class="invoice-list" id="invoiceList"><!-- populated by app.js --></ul>
+        </div>
+
+        <div class="sidebar__footer">
+            <label class="user-id-label">
+                User ID
+                <input type="text" id="userIdInput" value="demo-user" spellcheck="false">
+            </label>
+        </div>
+    </aside>
+
+    <main class="ledger__main">
+
+        <div class="thread" id="thread">
+            <div class="ledger-entry ledger-entry--bot">
+                <div class="ledger-entry__stamp">FIN</div>
+                <div class="ledger-entry__body">
+                    <p>Welcome. Say <strong>help</strong> to see what I can do, or attach an invoice image and say
+                        <strong>scan invoice</strong> to run it through OCR, parsing, payment, and a spoken confirmation.</p>
+                </div>
+            </div>
+        </div>
+
+        <form class="composer" id="composerForm" autocomplete="off">
+            <div class="composer__attachment" id="attachmentPreview" hidden>
+                <span id="attachmentName"></span>
+                <button type="button" id="clearAttachment" aria-label="Remove attachment">×</button>
+            </div>
+            <div class="composer__row">
+                <label class="attach-btn" title="Attach invoice image">
+                    <input type="file" id="invoiceImageInput" accept="image/*" hidden>
+                    📎
+                </label>
+                <input type="text" id="messageInput" placeholder="Type a command — e.g. scan invoice, status, help…" />
+                <button type="submit" class="send-btn">Send</button>
+            </div>
+        </form>
+
+    </main>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+</body>
+</html>
