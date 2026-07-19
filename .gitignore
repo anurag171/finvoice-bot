@@ -27,3 +27,4 @@ key.json
 
 # Logs
 *.log
+ocrproject*json
