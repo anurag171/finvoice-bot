@@ -26,6 +26,7 @@ public class ChatResponse {
     private Object data;
     private String audioUrl;
     private Long invoiceId;
+    private String text;
     @Builder.Default
     private boolean success = true;
 

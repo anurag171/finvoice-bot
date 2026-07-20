@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SkillConfig {
 
-    private static final int EXPECTED_SKILL_COUNT = 5; // Help, ScanInvoice, Payment, ReadAloud, Status
+    private static final int EXPECTED_SKILL_COUNT = 6; // Help, ScanInvoice, Payment, ReadAloud, Status, Listening
 
     private final List<ChatSkill> registeredSkills;
 
