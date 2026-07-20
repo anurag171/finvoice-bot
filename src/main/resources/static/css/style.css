@@ -326,6 +326,48 @@ html, body {
 }
 .send-btn:hover { background: var(--emerald); }
 
+/* ---------- Payment Action Buttons ---------- */
+
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex: 1;
+}
+
+.btn--primary {
+    background: var(--emerald);
+    color: white;
+}
+
+.btn--primary:hover {
+    background: #1d5c4a;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(46, 111, 94, 0.3);
+}
+
+.btn--secondary {
+    background: var(--paper-dim);
+    color: var(--ink);
+    border: 1px solid var(--rule);
+}
+
+.btn--secondary:hover {
+    background: var(--rule);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 /* ---------- Responsive ---------- */
 
 @media (max-width: 820px) {

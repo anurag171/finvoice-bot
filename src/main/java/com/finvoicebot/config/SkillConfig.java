@@ -9,10 +9,10 @@ import org.springframework.context.annotation.Configuration;
 import java.util.List;
 
 /**
- * Each skill ({@code HelpSkill}, {@code ScanInvoiceSkill}, {@code ReadAloudSkill},
- * {@code StatusSkill}) is annotated {@code @Component} and therefore auto-registered as a bean
- * by classpath scanning — {@link com.finvoicebot.strategy.AgentSkillStrategy} receives the full
- * {@code List<ChatSkill>} via constructor injection with no manual wiring needed here.
+ * Each skill ({@code HelpSkill}, {@code ScanInvoiceSkill}, {@code PaymentSkill},
+ * {@code ReadAloudSkill}, {@code StatusSkill}) is annotated {@code @Component} and therefore
+ * auto-registered as a bean by classpath scanning — {@link com.finvoicebot.strategy.AgentSkillStrategy}
+ * receives the full {@code List<ChatSkill>} via constructor injection with no manual wiring needed here.
  *
  * <p>This class exists as the single, explicit place documented in the manifest
  * ({@code agent-skills.md}) as "where skills are registered" — and to fail fast at startup if
@@ -24,7 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SkillConfig {
 
-    private static final int EXPECTED_SKILL_COUNT = 4; // Help, ScanInvoice, ReadAloud, Status
+    private static final int EXPECTED_SKILL_COUNT = 5; // Help, ScanInvoice, Payment, ReadAloud, Status
 
     private final List<ChatSkill> registeredSkills;
 

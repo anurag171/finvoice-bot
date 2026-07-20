@@ -119,4 +119,8 @@ public class ChatHistoryService {
     public Optional<PaymentRecord> findPaymentByReference(String gatewayReferenceId) {
         return paymentRepository.findByGatewayReferenceId(gatewayReferenceId);
     }
+
+    public Optional<InvoiceRecord> getInvoiceById(Long invoiceId) {
+        return invoiceRepository.findById(invoiceId);
+    }
 }

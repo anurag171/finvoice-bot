@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
  * message      - the raw text the user typed (or a synthesized command like "scan invoice").
  * invoiceImage - optional uploaded invoice image bytes, present only on scan requests.
  * imageFilename- original filename, for content-type sniffing and audit logs.
+ * invoiceId    - optional invoice record ID (set by UI after scanning, used by PaymentSkill).
  */
 @Getter
 @Builder
@@ -24,6 +25,7 @@ public class SkillRequest {
     private String message;
     private byte[] invoiceImage;
     private String imageFilename;
+    private Long invoiceId;
 
     public boolean hasImage() {
         return invoiceImage != null && invoiceImage.length > 0;

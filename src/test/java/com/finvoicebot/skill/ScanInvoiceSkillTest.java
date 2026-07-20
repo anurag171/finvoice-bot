@@ -4,10 +4,7 @@ import com.finvoicebot.dto.SkillRequest;
 import com.finvoicebot.service.history.ChatHistoryService;
 import com.finvoicebot.service.ocr.OcrService;
 import com.finvoicebot.service.parser.InvoiceParserService;
-import com.finvoicebot.service.payment.PaymentGatewayFactory;
-import com.finvoicebot.service.tts.TextToSpeechService;
 import com.finvoicebot.skill.impl.ScanInvoiceSkill;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +21,7 @@ class ScanInvoiceSkillTest {
         skill = new ScanInvoiceSkill(
                 mock(OcrService.class),
                 mock(InvoiceParserService.class),
-                mock(PaymentGatewayFactory.class),
-                mock(TextToSpeechService.class),
-                mock(ChatHistoryService.class),
-                new ObjectMapper());
+                mock(ChatHistoryService.class));
     }
 
     @Test

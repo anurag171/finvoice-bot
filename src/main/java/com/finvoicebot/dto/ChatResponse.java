@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
  * data         - optional structured payload (e.g. ParsedInvoice, PaymentResult) serialized as-is;
  *                the frontend renders it as a details card when present.
  * audioUrl     - optional URL to a generated TTS confirmation clip.
+ * invoiceId    - optional invoice ID (set by ScanInvoiceSkill, used by PaymentSkill to link payments).
  * success      - whether the skill completed without error.
  */
 @Getter
@@ -24,6 +25,7 @@ public class ChatResponse {
     private String message;
     private Object data;
     private String audioUrl;
+    private Long invoiceId;
     @Builder.Default
     private boolean success = true;
 

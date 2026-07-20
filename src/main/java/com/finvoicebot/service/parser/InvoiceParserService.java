@@ -27,28 +27,54 @@ public class InvoiceParserService {
 
     private static final List<Pattern> INVOICE_NUMBER_PATTERNS = List.of(
             Pattern.compile("invoice\\s*(?:no\\.?|number|#)\\s*[:\\-]?\\s*([A-Za-z0-9\\-/]+)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("inv\\s*[:\\-#]\\s*([A-Za-z0-9\\-/]+)", Pattern.CASE_INSENSITIVE)
+            Pattern.compile("inv\\s*[:\\-#]\\s*([A-Za-z0-9\\-/]+)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("cheque?\\s*(?:no\\.?|number|#)\\s*[:\\-]?\\s*([A-Za-z0-9\\-/]+)", Pattern.CASE_INSENSITIVE),
+            Pattern.compile("chq\\s*[:\\-#]\\s*([A-Za-z0-9\\-/]+)", Pattern.CASE_INSENSITIVE),
+            // Bare cheque number (7-10 digits, typically appears at start of line or after specific markers)
+            Pattern.compile("^([0-9]{6,10})$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE)
     );
 
     private static final List<Pattern> AMOUNT_PATTERNS = List.of(
+            // Amount with explicit currency and rupee lakh format (₹50,25,000/-)
+            Pattern.compile("([₹$€£])\\s*([0-9][0-9,]*(?:[0-9]{2})?)\\s*[-/]?", Pattern.CASE_INSENSITIVE),
+            // Generic pattern with keywords and optional currency
             Pattern.compile("(?:total\\s*(?:due|amount)?|amount\\s*due|grand\\s*total|balance\\s*due)\\s*[:\\-]?\\s*"
-                    + "([₹$€£]?)\\s*([0-9][0-9,]*\\.?[0-9]{0,2})", Pattern.CASE_INSENSITIVE)
+                    + "([₹$€£]?)\\s*([0-9][0-9,]*\\.?[0-9]{0,2})", Pattern.CASE_INSENSITIVE),
+            // Bare amount with rupee format - no explicit currency, capture empty string for group 1
+            Pattern.compile("()([0-9]{1,2},?[0-9]{2},[0-9]{3}(?:,-)?(?:/-)?)\\b", Pattern.CASE_INSENSITIVE)
     );
 
     private static final List<Pattern> DATE_PATTERNS = List.of(
             Pattern.compile("(?:invoice\\s*date|date)\\s*[:\\-]?\\s*"
                     + "(\\d{1,2}[/\\-]\\d{1,2}[/\\-]\\d{2,4}|\\d{4}[/\\-]\\d{1,2}[/\\-]\\d{1,2}|"
-                    + "[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4})", Pattern.CASE_INSENSITIVE)
+                    + "[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4})", Pattern.CASE_INSENSITIVE),
+            // Bare date patterns for cheques (8-digit date, slash or dash separated)
+            Pattern.compile("(\\d{2}[/\\-]\\d{2}[/\\-]\\d{4}|\\d{4}[/\\-]\\d{2}[/\\-]\\d{2})", Pattern.CASE_INSENSITIVE),
+            // DDMMYY format
+            Pattern.compile("(\\d{2}\\d{2}\\d{2})", Pattern.CASE_INSENSITIVE)
     );
 
     private static final List<Pattern> PAYEE_PATTERNS = List.of(
+            // Explicit "PAY TO" label
             Pattern.compile("(?:pay\\s*to|payee|vendor|bill\\s*from|remit\\s*to)\\s*[:\\-]?\\s*([A-Za-z0-9&.,'\\- ]{3,60})",
-                    Pattern.CASE_INSENSITIVE)
+                    Pattern.CASE_INSENSITIVE),
+            // Standalone "PAY" label followed by name
+            Pattern.compile("^\\s*pay\\s+([A-Za-z0-9&.,'\\- ]{3,60})", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE),
+            // Standalone proper name (ALL CAPS or Title Case, 3+ chars, appears before account/amount info)
+            // Look for name after "Please sign" or just before account lines
+            Pattern.compile("([A-Z][A-Za-z]{2,}(?:\\s+[A-Z][A-Za-z]+)*?)(?:\\n|\\s*(?:SAVINGS|ACCOUNT|A/C|Please\\s+sign|Quak))", 
+                    Pattern.CASE_INSENSITIVE | Pattern.MULTILINE)
     );
 
     private static final List<Pattern> ACCOUNT_REF_PATTERNS = List.of(
             Pattern.compile("(?:account\\s*(?:no\\.?|number)|iban|a/c\\s*no\\.?)\\s*[:\\-]?\\s*([A-Za-z0-9\\-]{4,34})",
-                    Pattern.CASE_INSENSITIVE)
+                    Pattern.CASE_INSENSITIVE),
+            // Bare account number (multiple digits, often seen after "A/C" label)
+            Pattern.compile("a/c\\s*[:\\-]?\\s*([0-9]{4,34})", Pattern.CASE_INSENSITIVE),
+            // SAVINGS AC or similar followed by number
+            Pattern.compile("(?:savings\\s+a/c|account)\\s+([0-9]{4,34})", Pattern.CASE_INSENSITIVE),
+            // Bare 10-digit account number (typically after SAVINGS A/C label)
+            Pattern.compile("^([0-9]{10,34})$", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE)
     );
 
     private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
@@ -57,14 +83,23 @@ public class InvoiceParserService {
             DateTimeFormatter.ofPattern("M/d/yyyy"),
             DateTimeFormatter.ofPattern("yyyy-M-d"),
             DateTimeFormatter.ofPattern("yyyy/M/d"),
+            DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+            DateTimeFormatter.ofPattern("dd-MM-yyyy"),
+            DateTimeFormatter.ofPattern("MM/dd/yyyy"),
+            DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+            DateTimeFormatter.ofPattern("yyyy/MM/dd"),
             DateTimeFormatter.ofPattern("MMMM d, yyyy"),
-            DateTimeFormatter.ofPattern("MMM d, yyyy")
+            DateTimeFormatter.ofPattern("MMM d, yyyy"),
+            DateTimeFormatter.ofPattern("d MMMM yyyy"),
+            DateTimeFormatter.ofPattern("dd MMM yyyy")
     );
 
     public ParsedInvoice parse(String rawOcrText) {
         if (rawOcrText == null || rawOcrText.isBlank()) {
             return ParsedInvoice.builder().parseConfidence(0.0).rawOcrText(rawOcrText).build();
         }
+
+        log.debug("Raw OCR text for parsing:\n{}", rawOcrText);
 
         String invoiceNumber = firstMatch(INVOICE_NUMBER_PATTERNS, rawOcrText);
         String amountRaw = firstMatch(AMOUNT_PATTERNS, rawOcrText, 2);
@@ -108,20 +143,30 @@ public class InvoiceParserService {
     private String firstMatch(List<Pattern> patterns, String text, int group) {
         for (Pattern p : patterns) {
             Matcher m = p.matcher(text);
-            if (m.find() && m.groupCount() >= group) {
-                String value = m.group(group);
-                if (value != null && !value.isBlank()) {
-                    return value.trim();
+            if (m.find()) {
+                if (m.groupCount() >= group) {
+                    String value = m.group(group);
+                    if (value != null && !value.isBlank()) {
+                        log.debug("Pattern match: {} => group({}): '{}'", p.pattern(), group, value);
+                        return value.trim();
+                    }
+                } else {
+                    log.debug("Pattern matched but group {} not available. groupCount={}, pattern: {}", 
+                            group, m.groupCount(), p.pattern());
                 }
             }
         }
+        log.debug("No pattern matched for group {}", group);
         return null;
     }
 
     private BigDecimal parseAmount(String raw) {
         if (raw == null || raw.isBlank()) return null;
         try {
-            return new BigDecimal(raw.replace(",", ""));
+            // Remove all commas and currency symbols, keep only digits and decimal
+            String cleaned = raw.replaceAll("[,₹$€£\\s/\\-]", "").trim();
+            if (cleaned.isEmpty()) return null;
+            return new BigDecimal(cleaned);
         } catch (NumberFormatException e) {
             log.warn("Could not parse amount from OCR text fragment: '{}'", raw);
             return null;

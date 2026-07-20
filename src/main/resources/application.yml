@@ -24,7 +24,7 @@ server:
 # --- Application-specific config ---
 finvoice:
   ocr:
-    credentials-file: ${GOOGLE_APPLICATION_CREDENTIALS:}
+    credentials-file: classpath:ocrproject-502911-d9aac9ab70e5.json
     language-hints: en
 
   audio:
@@ -42,7 +42,9 @@ finvoice:
 
 logging:
   level:
-    com.finvoicebot: INFO
+    com.finvoicebot: DEBUG
+    com.finvoicebot.service.parser: DEBUG
+    com.finvoicebot.service.ocr: DEBUG
 
 ---
 # --- 'postgres' profile: activate with --spring.profiles.active=postgres for multi-user prod ---

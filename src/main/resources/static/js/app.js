@@ -15,6 +15,7 @@
 
     let sessionId = crypto.randomUUID();
     let pendingImage = null;
+    let lastScannedInvoiceId = null;
 
     function currentUserId() {
         return userIdInput.value.trim() || "demo-user";
@@ -22,7 +23,7 @@
 
     // ---------- Rendering ----------
 
-    function appendEntry({ fromUser, text, data, audioUrl }) {
+    function appendEntry({ fromUser, text, data, audioUrl, invoiceId, skillName }) {
         const entry = document.createElement("div");
         entry.className = "ledger-entry " + (fromUser ? "ledger-entry--user" : "ledger-entry--bot");
 
@@ -38,6 +39,11 @@
         p.textContent = text;
         body.appendChild(p);
 
+        // Store invoiceId if this is a scan response
+        if (invoiceId && skillName === "ScanInvoiceSkill") {
+            lastScannedInvoiceId = invoiceId;
+        }
+
         if (data && (data.invoiceNumber || data.amount)) {
             body.appendChild(renderInvoiceCard(data));
         }
@@ -47,6 +53,29 @@
             audio.controls = true;
             audio.src = audioUrl;
             body.appendChild(audio);
+        }
+
+        // Show payment action buttons after a scan
+        if (invoiceId && skillName === "ScanInvoiceSkill") {
+            const buttonContainer = document.createElement("div");
+            buttonContainer.className = "action-buttons";
+            buttonContainer.style.marginTop = "12px";
+            buttonContainer.style.display = "flex";
+            buttonContainer.style.gap = "8px";
+
+            const confirmBtn = document.createElement("button");
+            confirmBtn.className = "btn btn--primary";
+            confirmBtn.textContent = "✓ Confirm & Pay";
+            confirmBtn.addEventListener("click", () => sendPaymentMessage("yes", invoiceId));
+            buttonContainer.appendChild(confirmBtn);
+
+            const cancelBtn = document.createElement("button");
+            cancelBtn.className = "btn btn--secondary";
+            cancelBtn.textContent = "✗ Cancel";
+            cancelBtn.addEventListener("click", () => sendPaymentMessage("no", invoiceId));
+            buttonContainer.appendChild(cancelBtn);
+
+            body.appendChild(buttonContainer);
         }
 
         entry.appendChild(body);
@@ -97,13 +126,14 @@
 
     // ---------- Sending messages ----------
 
-    async function sendMessage(text) {
+    async function sendMessage(text, invoiceId = null) {
         appendEntry({ fromUser: true, text: text || "[invoice image]" });
 
         const formData = new FormData();
         formData.append("userId", currentUserId());
         formData.append("sessionId", sessionId);
         if (text) formData.append("message", text);
+        if (invoiceId) formData.append("invoiceId", invoiceId);
         if (pendingImage) formData.append("invoiceImage", pendingImage);
 
         try {
@@ -114,6 +144,8 @@
                 text: payload.message,
                 data: payload.data,
                 audioUrl: payload.audioUrl,
+                invoiceId: payload.invoiceId,
+                skillName: payload.skillName,
             });
         } catch (err) {
             appendEntry({ fromUser: false, text: "Network error — could not reach the server. " + err });
@@ -121,6 +153,10 @@
             clearAttachment();
             refreshSidebar();
         }
+    }
+
+    function sendPaymentMessage(response, invoiceId) {
+        sendMessage(response, invoiceId);
     }
 
     composerForm.addEventListener("submit", (e) => {

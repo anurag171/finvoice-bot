@@ -42,7 +42,8 @@ public class ChatBotController {
             @RequestParam("userId") String userId,
             @RequestParam(value = "sessionId", required = false) String sessionId,
             @RequestParam(value = "message", required = false) String message,
-            @RequestParam(value = "invoiceImage", required = false) MultipartFile invoiceImage) {
+            @RequestParam(value = "invoiceImage", required = false) MultipartFile invoiceImage,
+            @RequestParam(value = "invoiceId", required = false) Long invoiceId) {
 
         String resolvedSessionId = (sessionId == null || sessionId.isBlank())
                 ? UUID.randomUUID().toString()
@@ -66,6 +67,7 @@ public class ChatBotController {
                 .message(message)
                 .invoiceImage(imageBytes)
                 .imageFilename(imageFilename)
+                .invoiceId(invoiceId)
                 .build();
 
         chatHistoryService.recordUserTurn(request);
