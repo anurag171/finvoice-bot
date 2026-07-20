@@ -45,19 +45,26 @@ public class ReadAloudSkill implements ChatSkill {
         Optional<PaymentRecord> paymentOpt = chatHistoryService.lastPaymentForInvoice(invoice.getId());
 
         String text = paymentOpt
-                .map(p -> String.format(
-                        "Payment of %s %s to %s for invoice %s was submitted to %s. Current status: %s.",
-                        invoice.getCurrency(), invoice.getAmount(), invoice.getPayeeName(),
-                        invoice.getInvoiceNumber(), p.getGateway(), p.getStatus()))
-                .orElse(String.format(
-                        "Invoice %s from %s for %s %s was scanned, but no payment has been triggered for it yet.",
-                        invoice.getInvoiceNumber(), invoice.getPayeeName(), invoice.getCurrency(), invoice.getAmount()));
+                .map(p -> "Payment of %s %s to %s for invoice %s was submitted to %s. Current status: %s."
+                        .formatted(
+                                invoice.getCurrency(),
+                                invoice.getAmount(),
+                                invoice.getPayeeName(),
+                                invoice.getInvoiceNumber(),
+                                p.getGateway(),
+                                p.getStatus()))
+                .orElse("Invoice %s from %s for %s %s was scanned, but no payment has been triggered for it yet."
+                        .formatted(
+                                invoice.getInvoiceNumber(),
+                                invoice.getPayeeName(),
+                                invoice.getCurrency(),
+                                invoice.getAmount()));
 
         String audioUrl = ttsService.synthesizeToFile(text);
 
         return ChatResponse.builder()
                 .skillName(name())
-                .message("Here's the audio confirmation for invoice " + invoice.getInvoiceNumber() + ".")
+                .message("Here's the audio confirmation for invoice %s.".formatted(invoice.getInvoiceNumber()))
                 .audioUrl(audioUrl)
                 .success(true)
                 .build();

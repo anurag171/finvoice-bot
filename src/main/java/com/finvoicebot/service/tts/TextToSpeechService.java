@@ -1,22 +1,28 @@
 package com.finvoicebot.service.tts;
 
 import com.finvoicebot.exception.SkillExecutionException;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.texttospeech.v1.AudioConfig;
 import com.google.cloud.texttospeech.v1.AudioEncoding;
 import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
 import com.google.cloud.texttospeech.v1.SynthesisInput;
 import com.google.cloud.texttospeech.v1.SynthesizeSpeechResponse;
 import com.google.cloud.texttospeech.v1.TextToSpeechClient;
+import com.google.cloud.texttospeech.v1.TextToSpeechSettings;
 import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
 import com.google.protobuf.ByteString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,6 +48,9 @@ public class TextToSpeechService {
     @Value("${finvoice.audio.language-code:en-IN}")
     private String languageCode;
 
+    @Value("${finvoice.ocr.credentials-file:}")
+    private String credentialsFilePath;
+
     /**
      * Synthesizes the given text to an mp3 file and returns its public-facing URL path.
      */
@@ -50,12 +59,14 @@ public class TextToSpeechService {
             throw new SkillExecutionException("ReadAloudSkill", "Nothing to read aloud yet.");
         }
 
-        try (TextToSpeechClient client = TextToSpeechClient.create()) {
+        log.info("Synthesizing audio for text: \"{}\"", text);
+
+        try (TextToSpeechClient client = TextToSpeechClient.create(buildSettings())) {
             SynthesisInput input = SynthesisInput.newBuilder().setText(text).build();
             VoiceSelectionParams voice = VoiceSelectionParams.newBuilder()
                     .setLanguageCode(languageCode)
                     .setName(voiceName)
-                    .setSsmlGender(SsmlVoiceGender.NEUTRAL)
+                    .setSsmlGender(SsmlVoiceGender.FEMALE) // arbitrary, just needs to be a valid enum value
                     .build();
             AudioConfig audioConfig = AudioConfig.newBuilder()
                     .setAudioEncoding(AudioEncoding.MP3)
@@ -78,5 +89,32 @@ public class TextToSpeechService {
             throw new SkillExecutionException("ReadAloudSkill",
                     "Could not reach the Text-to-Speech service. Check network access and credentials.", e);
         }
+    }
+
+    private TextToSpeechSettings buildSettings() throws IOException {
+        if (credentialsFilePath != null && !credentialsFilePath.isBlank()) {
+            try (InputStream credentialsStream = resolveCredentialsStream()) {
+                GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream)
+                        .createScoped(List.of("https://www.googleapis.com/auth/cloud-platform"));
+                return TextToSpeechSettings.newBuilder()
+                        .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                        .build();
+            }
+        }
+
+        // Uses default credential resolution chain (env var key.json -> ADC -> Workload Identity).
+        return TextToSpeechSettings.newBuilder().build();
+    }
+
+    private InputStream resolveCredentialsStream() throws IOException {
+        if (credentialsFilePath.startsWith("classpath:")) {
+            String resourcePath = credentialsFilePath.substring("classpath:".length());
+            InputStream stream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (stream == null) {
+                throw new IOException("Google credentials resource not found: " + resourcePath);
+            }
+            return stream;
+        }
+        return new FileInputStream(credentialsFilePath);
     }
 }
