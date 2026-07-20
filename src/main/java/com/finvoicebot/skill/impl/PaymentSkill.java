@@ -135,19 +135,21 @@ public class PaymentSkill implements ChatSkill {
             log.warn("TTS synthesis failed after successful payment {}: {}", paymentRecord.getId(), e.getMessage());
         }
 
-        String userMessage = String.format(
-                "✓ Payment processed!\n\n"
-                        + "Invoice #%s for %s %s to %s\n"
-                        + "Gateway: %s\n"
-                        + "Reference: %s\n"
-                        + "Status: %s",
-                invoiceRecord.getInvoiceNumber(),
-                invoiceRecord.getCurrency(),
-                formatAmount(invoiceRecord.getAmount()),
-                invoiceRecord.getPayeeName(),
-                gateway.type(),
-                paymentResult.gatewayReferenceId(),
-                paymentResult.status());
+        String userMessage = """
+✓ Payment processed!
+
+Invoice #%s for %s %s to %s
+Gateway: %s
+Reference: %s
+Status: %s""".formatted(
+        invoiceRecord.getInvoiceNumber(),
+        invoiceRecord.getCurrency(),
+        formatAmount(invoiceRecord.getAmount()),
+        invoiceRecord.getPayeeName(),
+        gateway.type(),
+        paymentResult.gatewayReferenceId(),
+        paymentResult.status()
+);
 
         return ChatResponse.builder()
                 .skillName(name())
@@ -160,15 +162,15 @@ public class PaymentSkill implements ChatSkill {
     private InvoiceRecord getInvoice(SkillRequest request) {
         // First try to use the invoiceId from the request (most recent scan)
         if (request.getInvoiceId() != null) {
-            Optional<InvoiceRecord> record = chatHistoryService.getInvoiceById(request.getInvoiceId());
-            if (record.isPresent()) {
-                return record.get();
+            Optional<InvoiceRecord> invoiceRecord = chatHistoryService.getInvoiceById(request.getInvoiceId());
+            if (invoiceRecord.isPresent()) {
+                return invoiceRecord.get();
             }
         }
         
         // Fallback: get the most recent invoice from the session
-        Optional<InvoiceRecord> record = chatHistoryService.lastInvoiceForSession(request.getSessionId());
-        return record.orElse(null);
+        Optional<InvoiceRecord> invoiceRecord = chatHistoryService.lastInvoiceForSession(request.getSessionId());
+        return invoiceRecord.orElse(null);
     }
 
     private boolean hasRecentInvoice(SkillRequest request) {

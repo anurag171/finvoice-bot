@@ -40,34 +40,34 @@ public class StatusSkill implements ChatSkill {
     public ChatResponse handle(SkillRequest request) {
         String explicitReferenceId = extractReferenceId(request.getMessage());
 
-        PaymentRecord record;
+        PaymentRecord paymentRecord;
         if (explicitReferenceId != null) {
-            record = chatHistoryService.findPaymentByReference(explicitReferenceId)
+            paymentRecord = chatHistoryService.findPaymentByReference(explicitReferenceId)
                     .orElseThrow(() -> new SkillExecutionException(name(),
                             "I don't have a payment record for reference " + explicitReferenceId + "."));
         } else {
-            record = chatHistoryService.lastPaymentForUser(request.getUserId())
+            paymentRecord = chatHistoryService.lastPaymentForUser(request.getUserId())
                     .orElseThrow(() -> new SkillExecutionException(name(),
                             "No payments found yet — say \"scan invoice\" and attach one to get started."));
         }
 
-        PaymentGateway gateway = paymentGatewayFactory.byType(record.getGateway());
-        PaymentGateway.PaymentStatusResult liveStatus = gateway.checkStatus(record.getGatewayReferenceId());
+        PaymentGateway gateway = paymentGatewayFactory.byType(paymentRecord.getGateway());
+        PaymentGateway.PaymentStatusResult liveStatus = gateway.checkStatus(paymentRecord.getGatewayReferenceId());
 
-        record.setStatus(liveStatus.status());
-        record.setLastCheckedAt(java.time.Instant.now());
-        record.setGatewayResponseJson(liveStatus.rawResponseJson());
-        chatHistoryService.savePayment(record);
+        paymentRecord.setStatus(liveStatus.status());
+        paymentRecord.setLastCheckedAt(java.time.Instant.now());
+        paymentRecord.setGatewayResponseJson(liveStatus.rawResponseJson());
+        chatHistoryService.savePayment(paymentRecord);
 
         String message = String.format(
                 "Payment %s via %s is currently: %s (amount: %s %s).",
-                record.getGatewayReferenceId(), record.getGateway(), liveStatus.status(),
-                record.getCurrency(), record.getAmount());
+                paymentRecord.getGatewayReferenceId(), paymentRecord.getGateway(), liveStatus.status(),
+                paymentRecord.getCurrency(), paymentRecord.getAmount());
 
         return ChatResponse.builder()
                 .skillName(name())
                 .message(message)
-                .data(record)
+                .data(paymentRecord)
                 .success(true)
                 .build();
     }

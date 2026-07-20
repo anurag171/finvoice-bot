@@ -67,7 +67,7 @@ public class ChatHistoryService {
 
     @Transactional
     public InvoiceRecord saveInvoice(SkillRequest request, ParsedInvoice parsed, String sourceImageName) {
-        InvoiceRecord record = InvoiceRecord.builder()
+        InvoiceRecord invoiceRecord = InvoiceRecord.builder()
                 .userId(request.getUserId())
                 .sessionId(request.getSessionId())
                 .invoiceNumber(parsed.getInvoiceNumber())
@@ -80,12 +80,12 @@ public class ChatHistoryService {
                 .sourceImageName(sourceImageName)
                 .rawOcrText(parsed.getRawOcrText())
                 .build();
-        return invoiceRepository.save(record);
+        return invoiceRepository.save(invoiceRecord);
     }
 
     @Transactional
-    public PaymentRecord savePayment(PaymentRecord record) {
-        return paymentRepository.save(record);
+    public PaymentRecord savePayment(PaymentRecord paymentRecord) {
+        return paymentRepository.save(paymentRecord);
     }
 
     public List<String> listSessionsForUser(String userId) {

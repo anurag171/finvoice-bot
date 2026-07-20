@@ -11,10 +11,8 @@ import com.finvoicebot.skill.ChatSkill;
 
 import io.micrometer.common.lang.NonNull;
 import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.checkerframework.checker.units.qual.N;
 import org.springframework.stereotype.Component;
 
 import java.text.NumberFormat;
@@ -46,8 +44,6 @@ public class ScanInvoiceSkill implements ChatSkill {
     @Override
     public boolean canHandle(SkillRequest request) {
         if (!request.hasImage()) {
-            // Only claim the message if it both names this skill AND has an attachment;
-            // otherwise let the router fall through to Help, which explains the image is required.
             return false;
         }
         String msg = request.normalizedMessage();
@@ -64,21 +60,24 @@ public class ScanInvoiceSkill implements ChatSkill {
         InvoiceRecord invoiceRecord = chatHistoryService.saveInvoice(request, parsed, request.getImageFilename());
 
         // 3) Present the scanned fields to the user — ready for review and payment decision
-        String msg = String.format(
-                "✓ Invoice scanned with %.0f%% confidence. Here's what I extracted:\n\n"
-                        + "📄 Invoice #: %s\n"
-                        + "💰 Amount: %s %s\n"
-                        + "📅 Date: %s\n"
-                        + "👤 Payee: %s\n"
-                        + "🏦 Account: %s\n\n"
-                        + "Would you like me to proceed with payment? (Say \"yes\" or \"no\")",
-                parsed.getParseConfidence() * 100,
-                nullSafe(parsed.getInvoiceNumber()),
-                nullSafe(parsed.getCurrency()),
-                parsed.getAmount() == null ? "—" : formatAmount(parsed.getAmount()),
-                parsed.getInvoiceDate() == null ? "—" : parsed.getInvoiceDate(),
-                nullSafe(parsed.getPayeeName()),
-                nullSafe(parsed.getPayeeAccountRef()));
+        String msg = """
+✓ Invoice scanned with %.0f%% confidence. Here's what I extracted:
+
+📄 Invoice #: %s
+💰 Amount: %s %s
+📅 Date: %s
+👤 Payee: %s
+🏦 Account: %s
+
+Would you like me to proceed with payment? (Say "yes" or "no")""".formatted(
+        parsed.getParseConfidence() * 100,
+        nullSafe(parsed.getInvoiceNumber()),
+        nullSafe(parsed.getCurrency()),
+        parsed.getAmount() == null ? "—" : formatAmount(parsed.getAmount()),
+        parsed.getInvoiceDate() == null ? "—" : parsed.getInvoiceDate(),
+        nullSafe(parsed.getPayeeName()),
+        nullSafe(parsed.getPayeeAccountRef())
+);
 
         return ChatResponse.builder()
                 .skillName(name())
@@ -97,16 +96,6 @@ public class ScanInvoiceSkill implements ChatSkill {
         return nf.format(amount);
     }
 
-    
-    
-   
-
-    private String describeParsed(ParsedInvoice p) {
-        return String.format(
-                "- Invoice #: %s%n- Amount: %s %s%n- Date: %s%n- Payee: %s",
-                nullSafe(p.getInvoiceNumber()), nullSafe(p.getCurrency()), p.getAmount() == null ? "—" : p.getAmount(),
-                p.getInvoiceDate() == null ? "—" : p.getInvoiceDate(), nullSafe(p.getPayeeName()));
-    }
 
     private String nullSafe(String s) {
         return s == null ? "—" : s;
